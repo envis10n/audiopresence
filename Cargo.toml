@@ -1,0 +1,18 @@
+[package]
+name = "audiopresence"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.windows]
+version = "0.38.0"
+features = [
+    "alloc",
+    "Media",
+    "Foundation",
+    "Media_Control"
+]
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
