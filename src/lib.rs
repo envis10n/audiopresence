@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::{future::Future, pin::Pin};
 
+pub mod error;
+pub mod result;
+
 #[cfg(target_os = "windows")]
 pub mod win;
 
-#[cfg(target_os = "unix")]
-pub mod unix;
+#[cfg(target_os = "linux")]
+pub mod linux;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaProps {
@@ -38,12 +41,10 @@ impl MediaProps {
     }
 }
 
-pub trait OsMediaProps<E> {
-    fn currently_playing(&self) -> Result<MediaProps, E>
-    where
-        E: std::error::Error;
+pub trait OsMediaProps {
+    fn currently_playing(&self) -> result::Result<MediaProps>;
 }
 
-pub trait AsyncOsMediaProps<E> {
-    fn currently_playing(&self) -> Pin<Box<dyn Future<Output = Result<MediaProps, E>>>>;
+pub trait AsyncOsMediaProps {
+    fn currently_playing(&self) -> Pin<Box<dyn Future<Output = result::Result<MediaProps>>>>;
 }
