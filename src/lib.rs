@@ -12,13 +12,13 @@ use tokio::time::{self, Duration};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaProps {
-    artist: String,
-    title: String,
-    album_artist: String,
-    album_title: String,
-    subtitle: String,
-    album_track_count: i32,
-    track_number: i32,
+    pub artist: String,
+    pub title: String,
+    pub album_artist: String,
+    pub album_title: String,
+    pub subtitle: String,
+    pub album_track_count: i32,
+    pub track_number: i32,
 }
 
 impl From<MediaProperties> for MediaProps {
