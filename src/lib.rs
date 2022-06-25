@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use windows::Foundation::TypedEventHandler;
 use windows::Media::Control::{
@@ -9,7 +10,7 @@ use windows::Media::Control::{
 
 use tokio::time::{self, Duration};
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaProps {
     artist: String,
     title: String,
