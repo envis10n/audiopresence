@@ -1,3 +1,5 @@
+use super::error::Error;
+use super::result::Result;
 use super::{AsyncOsMediaProps, MediaProps, OsMediaProps};
 use std::pin::Pin;
 use std::sync::Arc;
@@ -67,25 +69,23 @@ impl WinMediaManager {
     }
 }
 
-impl OsMediaProps<windows::core::Error> for WinMediaManager {
-    fn currently_playing(&self) -> Result<MediaProps, windows::core::Error> {
+impl OsMediaProps for WinMediaManager {
+    fn currently_playing(&self) -> Result<MediaProps> {
         let session = self.session();
         match session.TryGetMediaPropertiesAsync().unwrap().get() {
             Ok(info) => Ok(MediaProps::from(info)),
-            Err(e) => Err(e),
+            Err(e) => Err(Error::new(e.to_string())),
         }
     }
 }
 
-impl AsyncOsMediaProps<windows::core::Error> for WinMediaManager {
-    fn currently_playing(
-        &self,
-    ) -> Pin<Box<dyn std::future::Future<Output = Result<MediaProps, windows::core::Error>>>> {
+impl AsyncOsMediaProps for WinMediaManager {
+    fn currently_playing(&self) -> Pin<Box<dyn std::future::Future<Output = Result<MediaProps>>>> {
         let session = self.session();
         Box::pin(async move {
             match session.TryGetMediaPropertiesAsync().unwrap().await {
                 Ok(info) => Ok(MediaProps::from(info)),
-                Err(e) => Err(e),
+                Err(e) => Err(Error::new(e.to_string())),
             }
         })
     }
@@ -124,5 +124,18 @@ where
         .unwrap();
     loop {
         time::sleep(Duration::from_millis(1000)).await;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::{OsMediaProps, WinMediaManager};
+    #[test]
+    fn test_metadata() {
+        let manager = WinMediaManager::new();
+        let metadata = manager
+            .currently_playing()
+            .expect("Error fetching metadata.");
+        println!("[Metadata] {:?}", metadata);
     }
 }
