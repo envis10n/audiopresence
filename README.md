@@ -1,2 +1,2 @@
 # audiopresence
-A Windows utility for updating Discord Rich Presence based on what is currently playing via the Media Session.
+A utility for obtaining metadata about what is currently playing via the operating system's media management.
