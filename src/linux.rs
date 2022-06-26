@@ -67,3 +67,16 @@ impl OsMediaProps for NixMediaManager {
 }
 
 // TODO: Async implementation?
+
+#[cfg(test)]
+mod test {
+    use super::{NixMediaManager, OsMediaProps};
+    #[test]
+    fn test_metadata() {
+        let manager = NixMediaManager::new().expect("D-Bus Error");
+        let metadata = manager
+            .currently_playing()
+            .expect("Error getting metadata.");
+        println!("[Metadata] {:?}", metadata);
+    }
+}
