@@ -41,11 +41,11 @@ impl From<DBusError> for Error {
     }
 }
 
-pub struct NixMediaManager {
+pub struct MediaManager {
     player_finder: PlayerFinder,
 }
 
-impl NixMediaManager {
+impl MediaManager {
     pub fn new() -> Result<Self> {
         match PlayerFinder::new() {
             Ok(player_finder) => Ok(Self { player_finder }),
@@ -54,7 +54,7 @@ impl NixMediaManager {
     }
 }
 
-impl OsMediaProps for NixMediaManager {
+impl OsMediaProps for MediaManager {
     fn currently_playing(&self) -> Result<MediaProps> {
         match self.player_finder.find_active() {
             Ok(player) => match player.get_metadata() {
@@ -70,10 +70,10 @@ impl OsMediaProps for NixMediaManager {
 
 #[cfg(test)]
 mod test {
-    use super::{NixMediaManager, OsMediaProps};
+    use super::{MediaManager, OsMediaProps};
     #[test]
     fn test_metadata() {
-        let manager = NixMediaManager::new().expect("D-Bus Error");
+        let manager = MediaManager::new().expect("D-Bus Error");
         let metadata = manager
             .currently_playing()
             .expect("Error getting metadata.");

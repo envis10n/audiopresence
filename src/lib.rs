@@ -4,11 +4,15 @@ use std::{future::Future, pin::Pin};
 pub mod error;
 pub mod result;
 
+#[cfg(target_os = "linux")]
+pub mod linux;
 #[cfg(target_os = "windows")]
 pub mod win;
 
 #[cfg(target_os = "linux")]
-pub mod linux;
+pub use linux::MediaManager;
+#[cfg(target_os = "windows")]
+pub use win::MediaManager;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaProps {

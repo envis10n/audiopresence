@@ -18,5 +18,4 @@ features = [
 version = "1.1.2"
 
 [dependencies]
-tokio = { version = "1", features = ["time"] }
 serde = { version = "1.0", features = ["derive"] }
