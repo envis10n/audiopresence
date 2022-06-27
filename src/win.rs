@@ -2,8 +2,9 @@ use super::error::Error;
 use super::result::Result;
 use super::{AsyncOsMediaProps, MediaProps, OsMediaProps};
 use std::pin::Pin;
+use windows::Foundation::{EventRegistrationToken, TypedEventHandler};
 use windows::Media::Control::{
-    GlobalSystemMediaTransportControlsSession,
+    GlobalSystemMediaTransportControlsSession as Session,
     GlobalSystemMediaTransportControlsSessionManager as SessionManager,
     GlobalSystemMediaTransportControlsSessionMediaProperties as MediaProperties,
 };
@@ -60,8 +61,38 @@ impl MediaManager {
             session_manager: SessionManager::RequestAsync().unwrap().get().unwrap(),
         }
     }
-    pub fn session(&self) -> GlobalSystemMediaTransportControlsSession {
+    pub fn session(&self) -> Session {
         self.session_manager.GetCurrentSession().unwrap()
+    }
+    pub fn on_media_change<F>(&self, f: F) -> Result<EventRegistrationToken>
+    where
+        F: Fn(MediaProps) -> () + Send + Sync + 'static,
+    {
+        let session = self.session();
+        session
+            .MediaPropertiesChanged(TypedEventHandler::new(
+                move |_sender: &Option<Session>, _args| {
+                    if let Some(session) = _sender {
+                        let res = match session.TryGetMediaPropertiesAsync().unwrap().get() {
+                            Ok(info) => {
+                                f(MediaProps::from(info));
+                                Ok(())
+                            }
+                            Err(e) => Err(e),
+                        };
+                        res
+                    } else {
+                        Ok(())
+                    }
+                },
+            ))
+            .map_err(|err| Error::new(err.to_string()))
+    }
+    pub fn cancel_media_change(&self, token: EventRegistrationToken) -> Result<()> {
+        let session = self.session();
+        session
+            .RemoveMediaPropertiesChanged(token)
+            .map_err(|e| Error::new(e.to_string()))
     }
 }
 
@@ -86,54 +117,6 @@ impl AsyncOsMediaProps for MediaManager {
         })
     }
 }
-
-/*
-
-use std::sync::Arc;
-use tokio::time::{self, Duration};
-use windows::Media::Control::{
-    GlobalSystemMediaTransportControlsSession,
-    GlobalSystemMediaTransportControlsSessionManager as SessionManager,
-    GlobalSystemMediaTransportControlsSessionMediaProperties as MediaProperties,
-    MediaPropertiesChangedEventArgs,
-};
-
-pub async fn register_handler<'a, T>(handler: T)
-where
-    T: Fn(MediaProps) -> () + 'static + Send + Sync,
-{
-    let handler = Arc::new(Box::new(handler));
-    let session_manager = SessionManager::RequestAsync().unwrap().await.unwrap();
-    let session = session_manager.GetCurrentSession().unwrap();
-    if let Ok(info) = session.TryGetMediaPropertiesAsync().unwrap().await {
-        let val = MediaProps::from(info);
-        handler(val);
-    }
-    let _token = session
-        .MediaPropertiesChanged(TypedEventHandler::new(
-            move |sender: &Option<GlobalSystemMediaTransportControlsSession>,
-                  _args: &Option<MediaPropertiesChangedEventArgs>| {
-                let handler = handler.clone();
-                if let Some(session) = sender {
-                    match session.TryGetMediaPropertiesAsync().unwrap().get() {
-                        Ok(info) => {
-                            let val = MediaProps::from(info);
-                            handler(val);
-                        }
-                        Err(err) => {
-                            println!("ERROR: {}", err);
-                        }
-                    }
-                }
-                Ok(())
-            },
-        ))
-        .unwrap();
-    loop {
-        tokio::time::sleep(Duration::from_millis(1000)).await;
-    }
-}
-*/
 
 #[cfg(test)]
 mod test {
