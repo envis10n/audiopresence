@@ -21,6 +21,12 @@ pub enum PlayerStatus {
     Paused(Option<TimelineProps>),
 }
 
+impl Default for PlayerStatus {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimelineProps {
     pub min_seek: i64,
