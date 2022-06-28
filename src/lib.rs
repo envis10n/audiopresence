@@ -15,6 +15,23 @@ pub use linux::MediaManager;
 pub use win::MediaManager;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PlayerStatus {
+    None,
+    Playing(Option<TimelineProps>),
+    Paused(Option<TimelineProps>),
+}
+
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TimelineProps {
+    pub min_seek: i64,
+    pub max_seek: i64,
+    pub position: i64,
+    pub started: i64,
+    pub ended: i64,
+    pub last_update: i64,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaProps {
     pub artist: String,
     pub title: String,
