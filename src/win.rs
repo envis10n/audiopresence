@@ -2,9 +2,7 @@ use super::error::Error;
 use super::result::Result;
 use super::{AsyncOsMediaProps, MediaProps, OsMediaProps};
 use std::pin::Pin;
-use windows::Foundation::{EventRegistrationToken, TypedEventHandler};
 use windows::Media::Control::{
-    GlobalSystemMediaTransportControlsSession as Session,
     GlobalSystemMediaTransportControlsSessionManager as SessionManager,
     GlobalSystemMediaTransportControlsSessionMediaProperties as MediaProperties,
 };
@@ -51,70 +49,50 @@ impl From<MediaProperties> for MediaProps {
     }
 }
 
-pub struct MediaManager {
-    session_manager: SessionManager,
-}
+pub struct MediaManager {}
 
 impl MediaManager {
-    pub fn new() -> Self {
-        Self {
-            session_manager: SessionManager::RequestAsync().unwrap().get().unwrap(),
-        }
-    }
-    pub fn session(&self) -> Session {
-        self.session_manager.GetCurrentSession().unwrap()
-    }
-    pub fn on_media_change<F>(&self, f: F) -> Result<EventRegistrationToken>
-    where
-        F: Fn(MediaProps) -> () + Send + Sync + 'static,
-    {
-        let session = self.session();
+    pub async fn get_media_properties_async() -> Result<MediaProps> {
+        let session_manager = SessionManager::RequestAsync()
+            .map_err(|e| Error::new(e.to_string()))?
+            .await
+            .map_err(|e| Error::new(e.to_string()))?;
+        let session = session_manager
+            .GetCurrentSession()
+            .map_err(|e| Error::new(e.to_string()))?;
         session
-            .MediaPropertiesChanged(TypedEventHandler::new(
-                move |_sender: &Option<Session>, _args| {
-                    if let Some(session) = _sender {
-                        let res = match session.TryGetMediaPropertiesAsync().unwrap().get() {
-                            Ok(info) => {
-                                f(MediaProps::from(info));
-                                Ok(())
-                            }
-                            Err(e) => Err(e),
-                        };
-                        res
-                    } else {
-                        Ok(())
-                    }
-                },
-            ))
-            .map_err(|err| Error::new(err.to_string()))
+            .TryGetMediaPropertiesAsync()
+            .map_err(|e| Error::new(e.to_string()))?
+            .await
+            .map(|res| MediaProps::from(res))
+            .map_err(|e| Error::new(e.to_string()))
     }
-    pub fn cancel_media_change(&self, token: EventRegistrationToken) -> Result<()> {
-        let session = self.session();
+    pub fn get_media_properties() -> Result<MediaProps> {
+        let session_manager = SessionManager::RequestAsync()
+            .map_err(|e| Error::new(e.to_string()))?
+            .get()
+            .map_err(|e| Error::new(e.to_string()))?;
+        let session = session_manager
+            .GetCurrentSession()
+            .map_err(|e| Error::new(e.to_string()))?;
         session
-            .RemoveMediaPropertiesChanged(token)
+            .TryGetMediaPropertiesAsync()
+            .map_err(|e| Error::new(e.to_string()))?
+            .get()
+            .map(|res| MediaProps::from(res))
             .map_err(|e| Error::new(e.to_string()))
     }
 }
 
 impl OsMediaProps for MediaManager {
-    fn currently_playing(&self) -> Result<MediaProps> {
-        let session = self.session();
-        match session.TryGetMediaPropertiesAsync().unwrap().get() {
-            Ok(info) => Ok(MediaProps::from(info)),
-            Err(e) => Err(Error::new(e.to_string())),
-        }
+    fn currently_playing() -> Result<MediaProps> {
+        MediaManager::get_media_properties()
     }
 }
 
 impl AsyncOsMediaProps for MediaManager {
-    fn currently_playing(&self) -> Pin<Box<dyn std::future::Future<Output = Result<MediaProps>>>> {
-        let session = self.session();
-        Box::pin(async move {
-            match session.TryGetMediaPropertiesAsync().unwrap().await {
-                Ok(info) => Ok(MediaProps::from(info)),
-                Err(e) => Err(Error::new(e.to_string())),
-            }
-        })
+    fn currently_playing() -> Pin<Box<dyn std::future::Future<Output = Result<MediaProps>>>> {
+        Box::pin(async { MediaManager::get_media_properties_async().await })
     }
 }
 
@@ -123,10 +101,7 @@ mod test {
     use super::{MediaManager, OsMediaProps};
     #[test]
     fn test_metadata() {
-        let manager = MediaManager::new();
-        let metadata = manager
-            .currently_playing()
-            .expect("Error fetching metadata.");
+        let metadata = MediaManager::currently_playing().expect("Error fetching metadata.");
         println!("[Metadata] {:?}", metadata);
     }
 }

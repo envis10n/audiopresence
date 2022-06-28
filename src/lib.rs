@@ -46,9 +46,9 @@ impl MediaProps {
 }
 
 pub trait OsMediaProps {
-    fn currently_playing(&self) -> result::Result<MediaProps>;
+    fn currently_playing() -> result::Result<MediaProps>;
 }
 
 pub trait AsyncOsMediaProps {
-    fn currently_playing(&self) -> Pin<Box<dyn Future<Output = result::Result<MediaProps>>>>;
+    fn currently_playing() -> Pin<Box<dyn Future<Output = result::Result<MediaProps>>>>;
 }
