@@ -41,28 +41,24 @@ impl From<DBusError> for Error {
     }
 }
 
-pub struct MediaManager {
-    player_finder: PlayerFinder,
-}
+pub struct MediaManager;
 
 impl MediaManager {
-    pub fn new() -> Result<Self> {
-        match PlayerFinder::new() {
-            Ok(player_finder) => Ok(Self { player_finder }),
-            Err(err) => Err(err.into()),
-        }
+    pub fn get_media_properties() -> Result<MediaProps> {
+        let finder = PlayerFinder::new().map_err(|e| Error::from(e))?;
+        let player = finder
+            .find_active()
+            .map_err(|e| Error::new(e.to_string()))?;
+        player
+            .get_metadata()
+            .map(|res| MediaProps::from(res))
+            .map_err(|e| e.into())
     }
 }
 
 impl OsMediaProps for MediaManager {
-    fn currently_playing(&self) -> Result<MediaProps> {
-        match self.player_finder.find_active() {
-            Ok(player) => match player.get_metadata() {
-                Ok(metadata) => Ok(MediaProps::from(metadata)),
-                Err(err) => Err(err.into()),
-            },
-            Err(err) => Err(Error::new(err.to_string())),
-        }
+    fn currently_playing() -> Result<MediaProps> {
+        MediaManager::get_media_properties()
     }
 }
 
@@ -73,10 +69,7 @@ mod test {
     use super::{MediaManager, OsMediaProps};
     #[test]
     fn test_metadata() {
-        let manager = MediaManager::new().expect("D-Bus Error");
-        let metadata = manager
-            .currently_playing()
-            .expect("Error getting metadata.");
+        let metadata = MediaManager::currently_playing().expect("Error getting metadata.");
         println!("[Metadata] {:?}", metadata);
     }
 }

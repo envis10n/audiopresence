@@ -49,7 +49,7 @@ impl From<MediaProperties> for MediaProps {
     }
 }
 
-pub struct MediaManager {}
+pub struct MediaManager;
 
 impl MediaManager {
     pub async fn get_media_properties_async() -> Result<MediaProps> {
