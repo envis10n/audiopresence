@@ -1,7 +1,7 @@
 use super::error::Error;
 use super::result::Result;
 use super::{AsyncOsMediaProps, MediaProps, OsMediaProps, PlayerStatus, TimelineProps};
-use std::pin::Pin;
+use async_trait::async_trait;
 use windows::Media::Control::{
     GlobalSystemMediaTransportControlsSession as Session,
     GlobalSystemMediaTransportControlsSessionManager as SessionManager,
@@ -182,11 +182,41 @@ impl OsMediaProps for MediaManager {
     fn currently_playing() -> Result<MediaProps> {
         MediaManager::get_media_properties()
     }
+    fn player_status() -> Result<PlayerStatus> {
+        MediaManager::get_player_status()
+    }
+    fn timeline() -> Result<TimelineProps> {
+        let tline: Option<TimelineProps> = match MediaManager::get_player_status()? {
+            PlayerStatus::None => None,
+            PlayerStatus::Paused(tl) | PlayerStatus::Playing(tl) => tl,
+        };
+        if let Some(tl) = tline {
+            Ok(tl)
+        } else {
+            Err(Error::new("No timeline found."))
+        }
+    }
 }
 
+#[async_trait]
 impl AsyncOsMediaProps for MediaManager {
-    fn currently_playing() -> Pin<Box<dyn std::future::Future<Output = Result<MediaProps>>>> {
-        Box::pin(async { MediaManager::get_media_properties_async().await })
+    async fn currently_playing() -> Result<MediaProps> {
+        MediaManager::get_media_properties_async().await
+    }
+    async fn player_status() -> Result<PlayerStatus> {
+        MediaManager::get_player_status_async().await
+    }
+    async fn timeline() -> Result<TimelineProps> {
+        match MediaManager::get_player_status_async().await? {
+            PlayerStatus::Paused(tl) | PlayerStatus::Playing(tl) => {
+                if let Some(tline) = tl {
+                    Ok(tline)
+                } else {
+                    Err(Error::new("No timeline found."))
+                }
+            }
+            _ => Err(Error::new("No timeline found.")),
+        }
     }
 }
 
@@ -197,5 +227,10 @@ mod test {
     fn test_metadata() {
         let metadata = MediaManager::currently_playing().expect("Error fetching metadata.");
         println!("[Metadata] {:?}", metadata);
+    }
+    #[test]
+    fn test_status() {
+        let status = MediaManager::player_status().expect("Error fetching player status.");
+        println!("[Status] {:?}", status);
     }
 }
