@@ -1,5 +1,5 @@
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::{future::Future, pin::Pin};
 
 pub mod error;
 pub mod result;
@@ -70,8 +70,13 @@ impl MediaProps {
 
 pub trait OsMediaProps {
     fn currently_playing() -> result::Result<MediaProps>;
+    fn player_status() -> result::Result<PlayerStatus>;
+    fn timeline() -> result::Result<TimelineProps>;
 }
 
+#[async_trait]
 pub trait AsyncOsMediaProps {
-    fn currently_playing() -> Pin<Box<dyn Future<Output = result::Result<MediaProps>>>>;
+    async fn currently_playing() -> result::Result<MediaProps>;
+    async fn player_status() -> result::Result<PlayerStatus>;
+    async fn timeline() -> result::Result<TimelineProps>;
 }
